@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -40,19 +41,20 @@ namespace Netling.Core
                 sw.Start();
                 var webRequest = (HttpWebRequest)WebRequest.Create(url);
                 webRequest.Headers[HttpRequestHeader.AcceptEncoding] = "gzip,deflate,sdch";
+                webRequest.Headers.Add("Authish", "noademo!");
+                webRequest.AllowAutoRedirect = false;
 
                 using (var response = (HttpWebResponse)await webRequest.GetResponseAsync())
                 using (var stream = response.GetResponseStream())
                 using (var sr = new StreamReader(stream))
                 {
                     var result = await sr.ReadToEndAsync();
-                    if (response.StatusCode == HttpStatusCode.OK)
-                        return new UrlResult((int)sw.ElapsedMilliseconds, result.Length, startTime, url, Thread.CurrentThread.ManagedThreadId);
-                    
-                    return new UrlResult(startTime, url);
+                    return response.StatusCode == HttpStatusCode.OK
+                        ? new UrlResult((int)sw.ElapsedMilliseconds, result.Length, startTime, url, Thread.CurrentThread.ManagedThreadId)
+                        : new UrlResult(startTime, url);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new UrlResult(startTime, url);
             }
